@@ -103,9 +103,9 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
-// DONE // After we generate our new shortURL, we add it to our database.
-// DONE // Our server then responds with a redirect to /urls/:shortURL.
-// Our browser then makes a GET request to /urls/:shortURL.
-
-// Our server looks up the longURL from the database, sends the shortURL and longURL to the urls_show template, generates the HTML, and then sends this HTML back to the browser.
-// The browser then renders this HTML.
+app.post("/urls/:shortURL/delete", (req, res) => {
+  console.log(urlDatabase)
+  delete urlDatabase[req.params.shortURL];
+  console.log(urlDatabase)
+  res.redirect("/urls");
+});
