@@ -76,16 +76,25 @@ app.get("/urls/:shortURL", (req, res) => {
 // POSTs the form (in urls_new) to /URLs
 app.post("/urls", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
-  generateRandomString(6);               // TASK : call string random generation function for shortURL (logic not implemented yet)
+  let randomString = generateRandomString(6);     // TASK : call string random generation function for shortURL (logic not implemented yet)
+  console.log('randomString := ', randomString)
   // commit the changes in the urlDatabase object.
+  console.log('urlDatabase BEFORE :', urlDatabase);
+  urlDatabase[randomString] = req.body.longURL;
+  // NOTE ^^^ : object key added apparently without quotes, so be careful if this is needed later for JSON files.
+  console.log('urlDatabase AFTER', urlDatabase);
 
-  // instead of "OK", respond with a redirect - to new page showing the link they created 
+
+  // instead of "OK", respond with a redirect - to new page showing the link they created
   //- to /urls/:shortURL, where shortURL is the random string we generated.
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  // res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  res.redirect("/urls/"+randomString);
 });
 
-// After we generate our new shortURL, we add it to our database.
-// Our server then responds with a redirect to /urls/:shortURL.
+
+// DONE // After we generate our new shortURL, we add it to our database.
+// DONE // Our server then responds with a redirect to /urls/:shortURL.
 // Our browser then makes a GET request to /urls/:shortURL.
+
 // Our server looks up the longURL from the database, sends the shortURL and longURL to the urls_show template, generates the HTML, and then sends this HTML back to the browser.
 // The browser then renders this HTML.
