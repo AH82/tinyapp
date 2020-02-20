@@ -69,28 +69,39 @@ app.get("/urls/new", (req, res) => {
 
 // this following function is mentioned in the learning modules as :id instead of :shortURL -- I think.
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL:  urlDatabase[req.params.shortURL] /* What goes here? */ };
+  let templateVars = { shortURL: req.params.shortURL, longURL:  urlDatabase[req.params.shortURL] };
   res.render("urls_show", templateVars);
 }); 
 
 // POSTs the form (in urls_new) to /URLs
 app.post("/urls", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
-  let randomString = generateRandomString(6);     // TASK : call string random generation function for shortURL (logic not implemented yet)
-  console.log('randomString := ', randomString)
+  //call string random generation function for shortURL.
+  let randomString = generateRandomString(6);
+
   // commit the changes in the urlDatabase object.
-  console.log('urlDatabase BEFORE :', urlDatabase);
+  console.log('randomString := ', randomString)       // TEST
+  console.log('urlDatabase BEFORE :', urlDatabase);   // TEST
   urlDatabase[randomString] = req.body.longURL;
+  console.log('urlDatabase AFTER', urlDatabase);      // TEST
   // NOTE ^^^ : object key added apparently without quotes, so be careful if this is needed later for JSON files.
-  console.log('urlDatabase AFTER', urlDatabase);
 
 
   // instead of "OK", respond with a redirect - to new page showing the link they created
   //- to /urls/:shortURL, where shortURL is the random string we generated.
   // res.send("Ok");         // Respond with 'Ok' (we will replace this)
   res.redirect("/urls/"+randomString);
+  // res.location();
 });
+/* app.get("/urls/:shortURL", (req, res) => {
+  let templateVars = { shortURL: req.params.shortURL, longURL:  urlDatabase[req.params.shortURL]  };
+  res.render("urls_show", templateVars);
+});  */
 
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL] 
+  res.redirect(longURL);
+});
 
 // DONE // After we generate our new shortURL, we add it to our database.
 // DONE // Our server then responds with a redirect to /urls/:shortURL.
