@@ -1,5 +1,8 @@
 const express = require("express");
+var cookieParser = require('cookie-parser');
 const app = express();
+app.use(cookieParser());
+
 const PORT = 8080; // default port 8080
 
 /** 
@@ -56,7 +59,10 @@ app.get("/hello", (req, res) => {
  * */ 
 
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase };
+  let templateVars = { 
+    username: req.cookies["username"],
+    urls: urlDatabase 
+  };
   res.render("urls_index", templateVars);
 });
 
@@ -64,12 +70,19 @@ app.get("/urls", (req, res) => {
 // reason: if placed after, Express will think /new is an :id , 
 //          but if this one has precedence (placed before), Express will know to treat it regularely (not ID).
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  let templateVars = { 
+    username: req.cookies["username"]
+  };
+  res.render("urls_new", templateVars);
 });
 
 // this following function is mentioned in the learning modules as :id instead of :shortURL -- I think.
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL:  urlDatabase[req.params.shortURL] };
+  let templateVars = { 
+    shortURL: req.params.shortURL, 
+    longURL:  urlDatabase[req.params.shortURL] ,
+    username: req.cookies["username"],
+  };
   res.render("urls_show", templateVars);
 }); 
 
@@ -109,6 +122,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   console.log(urlDatabase)
   res.redirect("/urls");
 });
+
 app.post("/urls/:shortURL/edit", (req, res) => {
   // res.send("hey! I'm on a dummy Edit page!")
   const shortURL = req.params.shortURL
@@ -116,7 +130,28 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   res.redirect("/urls/"+shortURL);
 
 });
-/* app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL:  urlDatabase[req.params.shortURL] };
-  res.render("urls_show", templateVars);
-});  */
+
+// -- LOGIN, Takes username from form input.
+app.post("/login", (req, res) => {
+let username = req.params.username;
+  // console.log(req.body.username);
+  res.cookie("username", req.body.username);
+  
+  res.redirect("/urls");
+});
+// Displa
+//what am I supposed to do ????
+/*   let templateVars = {
+    username: req.cookies["username"],
+    // ... any other vars
+  };
+  res.render("urls_index", templateVars); */
+
+
+//////////////
+
+app.post("/logout", (req, res) => {
+  //delete the cookie (_)
+  res.clearCookie('username');
+  res.redirect("/urls");
+});
