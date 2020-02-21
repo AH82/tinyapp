@@ -109,3 +109,14 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   console.log(urlDatabase)
   res.redirect("/urls");
 });
+app.post("/urls/:shortURL/edit", (req, res) => {
+  // res.send("hey! I'm on a dummy Edit page!")
+  const shortURL = req.params.shortURL
+  urlDatabase[shortURL] = req.body.longURL; // the line forgot : the actual line that updates this Short URL . (you dummy) 
+  res.redirect("/urls/"+shortURL);
+
+});
+/* app.get("/urls/:shortURL", (req, res) => {
+  let templateVars = { shortURL: req.params.shortURL, longURL:  urlDatabase[req.params.shortURL] };
+  res.render("urls_show", templateVars);
+});  */
