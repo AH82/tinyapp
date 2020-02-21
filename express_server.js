@@ -35,6 +35,20 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+// USERS OBJECT / DATABASE
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+};
+
 // Homepage
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -149,9 +163,13 @@ let username = req.params.username;
 
 
 //////////////
-
+// -- LOG OUT ROUTE --
 app.post("/logout", (req, res) => {
   //delete the cookie (_)
   res.clearCookie('username');
   res.redirect("/urls");
 });
+
+app.get("/register", (req,res) => {
+  Response.render("reg_users");
+})
