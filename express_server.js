@@ -54,18 +54,29 @@ const userEmailDuplicateChecker = function(email) {
   for (let user in users) {
     console.log('*** userEmailDuplicateChecker ***\n ', user);
     if (users[user].email === email) {
+      console.log('I\'m inside the IF !')
       return true;
     } else return false;
   }
 };
 
+// HELPER FUNCTION : takes user email and returns his ID
 const emailToUserId = function(email) {
   for (let user in users) {
     if (users[user].email === email) {
-      console.log(' *** emailToUserId *** \n', users[user].id);
+      console.log(' *** emailToUserId *** \n    ', users[user].id);
       return users[user].id;
     }
   }
+};
+
+// HELPER FUNCTION : 
+const userPasswordchecker = function(email, password) {
+  if (users[emailToUserId(email)]) {
+    if (users[emailToUserId(email)].password === password) {
+        return true;
+    }
+  } else return false;
 };
 
 // Homepage
@@ -168,15 +179,39 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   res.redirect("/urls/"+shortURL);
 
 });
+// LOGIN / GET :
+app.get("/login", (req, res) =>{
+  let templateVars = {
+    user : users[req.cookies["user_id"]]
+  };
+  res.render("users_login", templateVars);
+} );
 
 // LOGIN / POST :  Takes username from form input., Now email instead.
 app.post("/login", (req, res) => {
-  // let username = req.params.email;
-  // console.log(req.body.username);
-  // users[emailToUserId(req.body.email)];
+  // users[emailToUserId(req.body.email)]; // this was a bug. kept for reference.
+
+  // the following if-statement checks if email or password fields are empty. idea stolen from /register.
+  console.log("---USER LOGIN DETAILS ---");
+  console.log('EMAIL: ', req.body.email);
+  console.log('PASSWORD: ',req.body.password);
+
+  if ( !(req.body.email && req.body.password) ) {
+    res.statusCode = 400;
+    console.log(`statusCode : ${res.statusCode} Bad request : Empty email or password`);
+    res.end("400 Bad request: Empty email or password");
+  } 
+  // the following part checks both email and password at the same time 2-in-1. why? security! (ok ok and less work)
+
+  else if(userEmailDuplicateChecker(req.body.email) !== true && userPasswordchecker(req.body.email, req.body.password) !== true)  {
+    res.statusCode = 403;
+    console.log(`statusCode : ${res.statusCode} Bad request : email does not exist`);
+    res.end("403 forbidden or invalid request : email does not exist or wrong password");
+  } else {
   console.log('FROM INSIDE POST LOGIN',emailToUserId(req.body.email));
   res.cookie("user_id", emailToUserId(req.body.email));
   res.redirect("/urls");
+  }
 });
 
 // -- LOG OUT ROUTE --
@@ -188,7 +223,10 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/register", (req,res) => {
-  res.render("users_register");
+  let templateVars = {
+    user : users[req.cookies["user_id"]]
+  };
+  res.render("users_register", templateVars);
 });
 
 // USER REGISTRATION //  QUESTION : status 
