@@ -49,14 +49,24 @@ const users = {
   }
 };
 
-    // HELPER FUNCTION : returns false if user email exists.
-    const userEmailDuplicateChecker = function(email) {
-      for (let user in users) {
-        if (user.email === email) {
-          return false;
-        } else return true;
-      }
-    };
+// HELPER FUNCTION : returns true if user email exists.
+const userEmailDuplicateChecker = function(email) {
+  for (let user in users) {
+    console.log('*** userEmailDuplicateChecker ***\n ', user);
+    if (users[user].email === email) {
+      return true;
+    } else return false;
+  }
+};
+
+const emailToUserId = function(email) {
+  for (let user in users) {
+    if (users[user].email === email) {
+      console.log(' *** emailToUserId *** \n', users[user].id);
+      return users[user].id;
+    }
+  }
+};
 
 // Homepage
 app.get("/", (req, res) => {
@@ -83,7 +93,9 @@ app.get("/hello", (req, res) => {
 
 app.get("/urls", (req, res) => {
   let templateVars = { 
-    username: req.cookies["username"],
+    user : users[req.cookies["user_id"]],
+    // user : users[req.cookies["user_id"]],
+    // username: req.cookies["username"],
     urls: urlDatabase 
   };
   res.render("urls_index", templateVars);
@@ -93,8 +105,10 @@ app.get("/urls", (req, res) => {
 // reason: if placed after, Express will think /new is an :id , 
 //          but if this one has precedence (placed before), Express will know to treat it regularely (not ID).
 app.get("/urls/new", (req, res) => {
-  let templateVars = { 
-    username: req.cookies["username"]
+  let templateVars = {
+    // user : users[emailToUserId(req.body.email)],
+    user : users[req.cookies["user_id"]]//,
+   // username: req.cookies["user_id"]
   };
   res.render("urls_new", templateVars);
 });
@@ -104,7 +118,8 @@ app.get("/urls/:shortURL", (req, res) => {
   let templateVars = { 
     shortURL: req.params.shortURL, 
     longURL:  urlDatabase[req.params.shortURL] ,
-    username: req.cookies["username"],
+    // username: req.cookies["username"],
+    user : users[req.cookies["user_id"]]
   };
   res.render("urls_show", templateVars);
 }); 
@@ -154,28 +169,21 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 
 });
 
-// -- LOGIN, Takes username from form input.
+// LOGIN / POST :  Takes username from form input., Now email instead.
 app.post("/login", (req, res) => {
-let username = req.params.username;
+  // let username = req.params.email;
   // console.log(req.body.username);
-  res.cookie("username", req.body.username);
-  
+  // users[emailToUserId(req.body.email)];
+  console.log('FROM INSIDE POST LOGIN',emailToUserId(req.body.email));
+  res.cookie("user_id", emailToUserId(req.body.email));
   res.redirect("/urls");
 });
-// Displa
-//what am I supposed to do ????
-/*   let templateVars = {
-    username: req.cookies["username"],
-    // ... any other vars
-  };
-  res.render("urls_index", templateVars); */
 
-
-//////////////
 // -- LOG OUT ROUTE --
 app.post("/logout", (req, res) => {
   //delete the cookie (_)
-  res.clearCookie('username');
+  // res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect("/urls");
 });
 
@@ -189,29 +197,26 @@ app.post("/register", (req,res) => {
     res.statusCode = 400;
     console.log(`statusCode : ${res.statusCode} Bad request : Empty email`);
     res.end("400 Bad request: Empty email");
-  } else if(userEmailDuplicateChecker(req.body.email)) {
+  } else if(userEmailDuplicateChecker(req.body.email) === true) {
     res.statusCode = 400;
     console.log(`statusCode : ${res.statusCode} Bad request : email already exists`);
     res.end("400 Bad request : email already exists");
   } else {
-
-    // console.log(req.body)
+      // console.log(req.body)
     user_ID = generateRandomString(8);
-    // console.log("all good : random id gen");
+      // console.log("all good : random id gen");
     users[user_ID] = {};
-    // console.log("all good : users")
+      // console.log("all good : users")
     users[user_ID].id = user_ID;
-    // console.log("all good : user ID")
+      // console.log("all good : user ID")
     users[user_ID].email = req.body.email;
     users[user_ID].password = req.body.password;  
-    // email = req.body.email
-    // password = req.body.password
-    // console.log(users);
+      // email = req.body.email
+      // password = req.body.password
+      // console.log(users);
     res.cookie("user_id", user_ID);
-    // console.log("Cookie set!")
+      // console.log("Cookie set!")
     res.redirect("/urls");
-    // console.log("redirected? ")
+      // console.log("redirected? ")
   }
-  
-  
 });
