@@ -188,7 +188,7 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/register", (req,res) => {
-  res.render("reg_users");
+  res.render("users_register");
 });
 
 // USER REGISTRATION //  QUESTION : status 
