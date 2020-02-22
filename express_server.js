@@ -49,6 +49,15 @@ const users = {
   }
 };
 
+    // HELPER FUNCTION : returns false if user email exists.
+    const userEmailDuplicateChecker = function(email) {
+      for (let user in users) {
+        if (user.email === email) {
+          return false;
+        } else return true;
+      }
+    };
+
 // Homepage
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -171,5 +180,38 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/register", (req,res) => {
-  Response.render("reg_users");
-})
+  res.render("reg_users");
+});
+
+// USER REGISTRATION //  QUESTION : status 
+app.post("/register", (req,res) => {
+  if ( !req.body.email ) {
+    res.statusCode = 400;
+    console.log(`statusCode : ${res.statusCode} Bad request : Empty email`);
+    res.end("400 Bad request: Empty email");
+  } else if(userEmailDuplicateChecker(req.body.email)) {
+    res.statusCode = 400;
+    console.log(`statusCode : ${res.statusCode} Bad request : email already exists`);
+    res.end("400 Bad request : email already exists");
+  } else {
+
+    // console.log(req.body)
+    user_ID = generateRandomString(8);
+    // console.log("all good : random id gen");
+    users[user_ID] = {};
+    // console.log("all good : users")
+    users[user_ID].id = user_ID;
+    // console.log("all good : user ID")
+    users[user_ID].email = req.body.email;
+    users[user_ID].password = req.body.password;  
+    // email = req.body.email
+    // password = req.body.password
+    // console.log(users);
+    res.cookie("user_id", user_ID);
+    // console.log("Cookie set!")
+    res.redirect("/urls");
+    // console.log("redirected? ")
+  }
+  
+  
+});
