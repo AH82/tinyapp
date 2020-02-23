@@ -29,10 +29,11 @@ return text;
 // setting "view engine" from Express's default "jade" , to "ejs" (Embedded JavaScript) 
 app.set("view engine", "ejs");
 
-// database of tinyApp URLs
+// database of tinyApp URLs | key: value => shortURL: longURL
+// W3D3 : UPDATE : database now have property's values as (sub) URL-objects with longURL and userID as keys
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "userRandomID" },
+  "9sm5xK": { longURL: "http://www.google.com", userID: "user2RandomID" }
 };
 
 // USERS OBJECT / DATABASE
@@ -70,7 +71,7 @@ const emailToUserId = function(email) {
   }
 };
 
-// HELPER FUNCTION : 
+// HELPER FUNCTION : returns true if password corresponding to an email is found.
 const userPasswordchecker = function(email, password) {
   if (users[emailToUserId(email)]) {
     if (users[emailToUserId(email)].password === password) {
@@ -78,6 +79,19 @@ const userPasswordchecker = function(email, password) {
     }
   } else return false;
 };
+
+// HELPER FUNCTION : returns the URLs where the userID is equal to the id of the currently logged in user.
+const urlsForUser = function(id) {
+  //presumeably this will take it from the cookie
+  const userURLs = {}
+  for ( let shortURL in urlDatabase) { 
+    if (urlDatabase[shortURL].userID === id) {
+      userURLs[shortURL] = urlDatabase[shortURL].longURL;
+    }
+  }
+  // console.log(userURLs);
+  return userURLs;
+}
 
 // Homepage
 app.get("/", (req, res) => {
@@ -103,36 +117,61 @@ app.get("/hello", (req, res) => {
  * */ 
 
 app.get("/urls", (req, res) => {
-  let templateVars = { 
-    user : users[req.cookies["user_id"]],
-    // user : users[req.cookies["user_id"]],
-    // username: req.cookies["username"],
-    urls: urlDatabase 
-  };
-  res.render("urls_index", templateVars);
+  if (!req.cookies["user_id"]) {
+    res.redirect("/login");
+    // setTimeout(res.redirect("/login"), 1000);
+    res.end("Please Login to view your URLs or register to create some new ones");
+  } else {
+    let templateVars = { 
+      user : users[req.cookies["user_id"]],
+      // user : users[req.cookies["user_id"]],
+      // username: req.cookies["username"],
+      // urls: urlDatabase 
+      urls: urlsForUser(req.cookies["user_id"])
+    };
+    // console.log("cookie value : ", req.cookies["user_id"])
+    // console.log("urls: ", urls);
+    res.render("urls_index", templateVars);
+  }
 });
 
 // code to be inserted before the /:id (a.k.a. :shortURL) // order matters!
 // reason: if placed after, Express will think /new is an :id , 
 //          but if this one has precedence (placed before), Express will know to treat it regularely (not ID).
 app.get("/urls/new", (req, res) => {
-  let templateVars = {
-    // user : users[emailToUserId(req.body.email)],
-    user : users[req.cookies["user_id"]]//,
-   // username: req.cookies["user_id"]
-  };
-  res.render("urls_new", templateVars);
+  // console.log(req.cookies["user_id"]);
+  if (!req.cookies["user_id"]){
+    res.redirect("/login");
+  } else {
+    let templateVars = {
+      // user : users[emailToUserId(req.body.email)],
+      user : users[req.cookies["user_id"]]//,
+     // username: req.cookies["user_id"]
+    };
+    res.render("urls_new", templateVars);
+  }
 });
 
 // this following function is mentioned in the learning modules as :id instead of :shortURL -- I think.
+// AKA: /urls/:id
 app.get("/urls/:shortURL", (req, res) => {
+  let userURLsObj = urlsForUser(req.cookies["user_id"]);
+  if (!req.cookies["user_id"]) {
+    setTimeout(res.redirect("/login"), 3000);
+    res.end("Please Login to view your URLs or register to create some new ones");
+  } else if ( !userURLsObj[req.params.shortURL] ) {
+    // if the the URL with the matching :id does not belong to them.
+    res.end("Sorry! You do not have the proper clearance to view this  URL");
+  } else {
   let templateVars = { 
     shortURL: req.params.shortURL, 
-    longURL:  urlDatabase[req.params.shortURL] ,
+    // longURL:  urlDatabase[req.params.shortURL] ,
+    longURL:  userURLsObj[req.params.shortURL] ,
     // username: req.cookies["username"],
     user : users[req.cookies["user_id"]]
   };
   res.render("urls_show", templateVars);
+  }
 }); 
 
 // POSTs the form (in urls_new) to /URLs
@@ -161,23 +200,41 @@ app.post("/urls", (req, res) => {
 });  */
 
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL] 
+  const longURL = urlDatabase[req.params.shortURL].longURL;
+  // const longURL = urlsForUser[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+  let userURLsObj = urlsForUser(req.cookies["user_id"]);
+  if (!req.cookies["user_id"]) {
+    // res.redirect("/login");
+    res.end("Either you do not have the proper clearance to edit or Delete or you are not Logged in.\nPlease Login to view, edit or delete your URLs or register to create some new ones :)\n");
+  // } else if ( !userURLsObj[req.params.shortURL] ) {
+  //   // if the the URL with the matching :id does not belong to them.
+  //   res.end("Sorry! You do not have the proper clearance to view this  URL");
+  } else {
   console.log(urlDatabase)
   delete urlDatabase[req.params.shortURL];
   console.log(urlDatabase)
   res.redirect("/urls");
+  }
 });
 
 app.post("/urls/:shortURL/edit", (req, res) => {
+  let userURLsObj = urlsForUser(req.cookies["user_id"]);
+  if (!req.cookies["user_id"]) {
+    // res.redirect("/login");
+    res.end("Either you do not have the proper clearance to edit or Delete or you are not Logged in.\nPlease Login to view, edit or delete your URLs or register to create some new ones :)\n");
+  // } else if ( !userURLsObj[req.params.shortURL] ) {
+  //   // if the the URL with the matching :id does not belong to them.
+  //   res.end("Sorry! You do not have the proper clearance to view this  URL");
+  } else {
   // res.send("hey! I'm on a dummy Edit page!")
   const shortURL = req.params.shortURL
   urlDatabase[shortURL] = req.body.longURL; // the line forgot : the actual line that updates this Short URL . (you dummy) 
   res.redirect("/urls/"+shortURL);
-
+}
 });
 // LOGIN / GET :
 app.get("/login", (req, res) =>{
