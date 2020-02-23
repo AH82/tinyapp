@@ -1,5 +1,6 @@
 const express = require("express");
 var cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
 const app = express();
 app.use(cookieParser());
 
@@ -73,10 +74,17 @@ const emailToUserId = function(email) {
 
 // HELPER FUNCTION : returns true if password corresponding to an email is found.
 const userPasswordchecker = function(email, password) {
+  
   if (users[emailToUserId(email)]) {
+    const hashedPassword = users[emailToUserId(email)].password;
+    console.log('hashed password from  function userPasswordchecker = ', hashedPassword)
+    if (bcrypt.compareSync(password, hashedPassword)) {
+      return true;
+    }
+/*  // old code when the password was text. passwords now are bcrypted   
     if (users[emailToUserId(email)].password === password) {
         return true;
-    }
+    } */
   } else return false;
 };
 
@@ -118,7 +126,7 @@ app.get("/hello", (req, res) => {
 
 app.get("/urls", (req, res) => {
   if (!req.cookies["user_id"]) {
-    res.redirect("/login");
+    // res.redirect("/login");
     // setTimeout(res.redirect("/login"), 1000);
     res.end("Please Login to view your URLs or register to create some new ones");
   } else {
@@ -157,7 +165,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   let userURLsObj = urlsForUser(req.cookies["user_id"]);
   if (!req.cookies["user_id"]) {
-    setTimeout(res.redirect("/login"), 3000);
+    // setTimeout(res.redirect("/login"), 3000);
     res.end("Please Login to view your URLs or register to create some new ones");
   } else if ( !userURLsObj[req.params.shortURL] ) {
     // if the the URL with the matching :id does not belong to them.
@@ -176,21 +184,26 @@ app.get("/urls/:shortURL", (req, res) => {
 
 // POSTs the form (in urls_new) to /URLs
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
+  console.log('Console is now in app.post("/urls".. :\n',req.body);  // Log the POST request body to the console
   //call string random generation function for shortURL.
   let randomString = generateRandomString(6);
 
   // commit the changes in the urlDatabase object.
   console.log('randomString := ', randomString)       // TEST
   console.log('urlDatabase BEFORE :', urlDatabase);   // TEST
-  urlDatabase[randomString] = req.body.longURL;
+  // 2020-02-23 : POTENTIAL BUG DISCOVERED : urlDatabase was not updated here / Bug is here indeed
+  // urlDatabase[randomString] = req.body.longURL; // old code
+  urlDatabase[randomString] = {};
+  urlDatabase[randomString]["longURL"] = req.body.longURL;
+  urlDatabase[randomString]["userID"] = req.cookies["user_id"];
+  // 2020-02-23 : POTENTIAL BUG DISCOVERED ^ : END OF FIX
   console.log('urlDatabase AFTER', urlDatabase);      // TEST
   // NOTE ^^^ : object key added apparently without quotes, so be careful if this is needed later for JSON files.
 
 
   // instead of "OK", respond with a redirect - to new page showing the link they created
   //- to /urls/:shortURL, where shortURL is the random string we generated.
-  // res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  // res.send("Ok"); // Respond with 'Ok' (we will replace this)
   res.redirect("/urls/"+randomString);
   // res.location();
 });
@@ -249,23 +262,23 @@ app.post("/login", (req, res) => {
   // users[emailToUserId(req.body.email)]; // this was a bug. kept for reference.
 
   // the following if-statement checks if email or password fields are empty. idea stolen from /register.
-  console.log("---USER LOGIN DETAILS ---");
-  console.log('EMAIL: ', req.body.email);
-  console.log('PASSWORD: ',req.body.password);
+  // console.log("---USER LOGIN DETAILS ---");
+  // console.log('EMAIL: ', req.body.email);
+  // console.log('PASSWORD: ',req.body.password);
 
-  if ( !(req.body.email && req.body.password) ) {
+    // Checks if the login fields are empty
+    if ( !(req.body.email && req.body.password) ) {
     res.statusCode = 400;
     console.log(`statusCode : ${res.statusCode} Bad request : Empty email or password`);
     res.end("400 Bad request: Empty email or password");
   } 
   // the following part checks both email and password at the same time 2-in-1. why? security! (ok ok and less work)
-
   else if(userEmailDuplicateChecker(req.body.email) !== true && userPasswordchecker(req.body.email, req.body.password) !== true)  {
     res.statusCode = 403;
     console.log(`statusCode : ${res.statusCode} Bad request : email does not exist`);
     res.end("403 forbidden or invalid request : email does not exist or wrong password");
   } else {
-  console.log('FROM INSIDE POST LOGIN',emailToUserId(req.body.email));
+  console.log('---\nFROM INSIDE POST LOGIN : \nuser id is :' + emailToUserId(req.body.email) + '\nbody password is : ' + req.body.password + '\n---\n');
   res.cookie("user_id", emailToUserId(req.body.email));
   res.redirect("/urls");
   }
@@ -305,7 +318,11 @@ app.post("/register", (req,res) => {
     users[user_ID].id = user_ID;
       // console.log("all good : user ID")
     users[user_ID].email = req.body.email;
-    users[user_ID].password = req.body.password;  
+    // PASSWORD HASHING : 
+    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+    console.log('hashed password from registration = ', hashedPassword)
+    users[user_ID].password = hashedPassword;
+    // users[user_ID].password = req.body.password;
       // email = req.body.email
       // password = req.body.password
       // console.log(users);
