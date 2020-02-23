@@ -1,8 +1,16 @@
 const express = require("express");
-var cookieParser = require('cookie-parser');
+var cookieParser = require('cookie-parser'); // replaced by cookie-session
+const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const app = express();
 app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ["theKey"/* secret keys */],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 
 const PORT = 8080; // default port 8080
 
@@ -38,6 +46,22 @@ const urlDatabase = {
 };
 
 // USERS OBJECT / DATABASE
+// Database updated to reflect bcrypt changes.
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
+    
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: bcrypt.hashSync("dishwasher-funk", 10)
+    
+  }
+};
+/* // This is the old Database before bcrypt
 const users = { 
   "userRandomID": {
     id: "userRandomID", 
@@ -50,13 +74,13 @@ const users = {
     password: "dishwasher-funk"
   }
 };
-
+ */
 // HELPER FUNCTION : returns true if user email exists.
 const userEmailDuplicateChecker = function(email) {
   for (let user in users) {
     console.log('*** userEmailDuplicateChecker ***\n ', user);
     if (users[user].email === email) {
-      console.log('I\'m inside the IF !')
+      console.log('I\'m inside the IF in the email checker!')
       return true;
     } else return false;
   }
@@ -125,17 +149,20 @@ app.get("/hello", (req, res) => {
  * */ 
 
 app.get("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  // if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     // res.redirect("/login");
     // setTimeout(res.redirect("/login"), 1000);
     res.end("Please Login to view your URLs or register to create some new ones");
   } else {
     let templateVars = { 
-      user : users[req.cookies["user_id"]],
+      // user : users[req.cookies["user_id"]],
+      user : users[req.session.user_id],
       // user : users[req.cookies["user_id"]],
       // username: req.cookies["username"],
       // urls: urlDatabase 
-      urls: urlsForUser(req.cookies["user_id"])
+      // urls: urlsForUser(req.cookies["user_id"])
+      urls: urlsForUser(req.session.user_id)
     };
     // console.log("cookie value : ", req.cookies["user_id"])
     // console.log("urls: ", urls);
@@ -148,12 +175,14 @@ app.get("/urls", (req, res) => {
 //          but if this one has precedence (placed before), Express will know to treat it regularely (not ID).
 app.get("/urls/new", (req, res) => {
   // console.log(req.cookies["user_id"]);
-  if (!req.cookies["user_id"]){
+  // if (!req.cookies["user_id"]){
+  if (!req.session.user_id){
     res.redirect("/login");
   } else {
     let templateVars = {
       // user : users[emailToUserId(req.body.email)],
-      user : users[req.cookies["user_id"]]//,
+      // user : users[req.cookies["user_id"]]//,
+      user : users[req.session.user_id]//,
      // username: req.cookies["user_id"]
     };
     res.render("urls_new", templateVars);
@@ -163,8 +192,10 @@ app.get("/urls/new", (req, res) => {
 // this following function is mentioned in the learning modules as :id instead of :shortURL -- I think.
 // AKA: /urls/:id
 app.get("/urls/:shortURL", (req, res) => {
-  let userURLsObj = urlsForUser(req.cookies["user_id"]);
-  if (!req.cookies["user_id"]) {
+  // let userURLsObj = urlsForUser(req.cookies["user_id"]);
+  let userURLsObj = urlsForUser(req.session.user_id);
+  // if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     // setTimeout(res.redirect("/login"), 3000);
     res.end("Please Login to view your URLs or register to create some new ones");
   } else if ( !userURLsObj[req.params.shortURL] ) {
@@ -176,7 +207,8 @@ app.get("/urls/:shortURL", (req, res) => {
     // longURL:  urlDatabase[req.params.shortURL] ,
     longURL:  userURLsObj[req.params.shortURL] ,
     // username: req.cookies["username"],
-    user : users[req.cookies["user_id"]]
+    // user : users[req.cookies["user_id"]]
+    user : users[req.session.user_id]
   };
   res.render("urls_show", templateVars);
   }
@@ -195,7 +227,8 @@ app.post("/urls", (req, res) => {
   // urlDatabase[randomString] = req.body.longURL; // old code
   urlDatabase[randomString] = {};
   urlDatabase[randomString]["longURL"] = req.body.longURL;
-  urlDatabase[randomString]["userID"] = req.cookies["user_id"];
+  // urlDatabase[randomString]["userID"] = req.cookies["user_id"];
+  urlDatabase[randomString]["userID"] = req.session.user_id;
   // 2020-02-23 : POTENTIAL BUG DISCOVERED ^ : END OF FIX
   console.log('urlDatabase AFTER', urlDatabase);      // TEST
   // NOTE ^^^ : object key added apparently without quotes, so be careful if this is needed later for JSON files.
@@ -219,8 +252,10 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  let userURLsObj = urlsForUser(req.cookies["user_id"]);
-  if (!req.cookies["user_id"]) {
+  // let userURLsObj = urlsForUser(req.cookies["user_id"]);
+  let userURLsObj = urlsForUser(req.session.user_id);
+  // if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     // res.redirect("/login");
     res.end("Either you do not have the proper clearance to edit or Delete or you are not Logged in.\nPlease Login to view, edit or delete your URLs or register to create some new ones :)\n");
   // } else if ( !userURLsObj[req.params.shortURL] ) {
@@ -235,8 +270,10 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 app.post("/urls/:shortURL/edit", (req, res) => {
-  let userURLsObj = urlsForUser(req.cookies["user_id"]);
-  if (!req.cookies["user_id"]) {
+  // let userURLsObj = urlsForUser(req.cookies["user_id"]);
+  let userURLsObj = urlsForUser(req.session.user_id);
+  // if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     // res.redirect("/login");
     res.end("Either you do not have the proper clearance to edit or Delete or you are not Logged in.\nPlease Login to view, edit or delete your URLs or register to create some new ones :)\n");
   // } else if ( !userURLsObj[req.params.shortURL] ) {
@@ -246,13 +283,15 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   // res.send("hey! I'm on a dummy Edit page!")
   const shortURL = req.params.shortURL
   urlDatabase[shortURL] = req.body.longURL; // the line forgot : the actual line that updates this Short URL . (you dummy) 
+  // urlDatabase[shortURL] = req.body.longURL;
   res.redirect("/urls/"+shortURL);
 }
 });
 // LOGIN / GET :
 app.get("/login", (req, res) =>{
   let templateVars = {
-    user : users[req.cookies["user_id"]]
+    // user : users[req.cookies["user_id"]]
+    user : users[req.session.user_id]
   };
   res.render("users_login", templateVars);
 } );
@@ -279,7 +318,8 @@ app.post("/login", (req, res) => {
     res.end("403 forbidden or invalid request : email does not exist or wrong password");
   } else {
   console.log('---\nFROM INSIDE POST LOGIN : \nuser id is :' + emailToUserId(req.body.email) + '\nbody password is : ' + req.body.password + '\n---\n');
-  res.cookie("user_id", emailToUserId(req.body.email));
+  // res.cookie("user_id", emailToUserId(req.body.email));
+  req.session.user_id =  emailToUserId(req.body.email);
   res.redirect("/urls");
   }
 });
@@ -288,7 +328,8 @@ app.post("/login", (req, res) => {
 app.post("/logout", (req, res) => {
   //delete the cookie (_)
   // res.clearCookie('username');
-  res.clearCookie('user_id');
+  req.session.user_id = null;
+  // res.clearCookie('user_id');
   res.redirect("/urls");
 });
 
@@ -326,9 +367,11 @@ app.post("/register", (req,res) => {
       // email = req.body.email
       // password = req.body.password
       // console.log(users);
-    res.cookie("user_id", user_ID);
+    // res.cookie("user_id", user_ID);
+    req.session.user_id = user_ID;
       // console.log("Cookie set!")
     res.redirect("/urls");
       // console.log("redirected? ")
   }
 });
+// req.session.user_id
