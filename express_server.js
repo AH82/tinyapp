@@ -144,12 +144,107 @@ app.get("/hello", (req, res) => {
 });
 /**
  * NOTE-TO-SELF : the reason "templeteVars" is used in each is the scope, they are not scene bu other "app.get()"s 
- *                Also, I can send any objects I desire , each object sent to path is treated per page 
- *                pay attention to the Path/route arg for app.get(arg, whatever) *  
+ * Also, I can send any objects I desire , each object sent to path is treated per page 
+ * pay attention to the Path/route arg for app.get(arg, whatever) *  
  * */ 
+
+// LOGIN / GET :
+app.get("/login", (req, res) => {
+
+  let templateVars = {
+    // user : users[req.cookies["user_id"]]
+    user : users[req.session.user_id]
+  };
+  console.log("this is the app.get login : req.session.user_id = ",req.session.user_id)
+  console.log("this is the app.get login : users[req.session.user_id] = ",users[req.session.user_id])
+  console.log("this is the app.get login : users = ",users)
+  res.render("users_login", templateVars);
+} );
+
+// LOGIN / POST :  Takes username from form input., Now email instead.
+app.post("/login", (req, res) => {
+  // users[emailToUserId(req.body.email)]; // this was a bug. kept for reference.y
+  
+  // Checks if the login fields are empty
+  if ( !(req.body.email && req.body.password) ) {
+    res.statusCode = 400;
+    console.log(`statusCode : ${res.statusCode} Bad request : Empty email or password`);
+    res.end("400 Bad request: Empty email or password");
+  }
+
+  // the following part checks both email and password at the same time 2-in-1. why? security! (ok ok and less work)
+  else if(userEmailDuplicateChecker(req.body.email) !== true && userPasswordchecker(req.body.email, req.body.password) !== true)  {
+    res.statusCode = 403;
+    console.log(`statusCode : ${res.statusCode} Bad request : email does not exist`);
+    res.end("403 forbidden or invalid request : email does not exist or wrong password");
+  } 
+  
+  else {
+  console.log('---\nFROM INSIDE POST LOGIN : \nuser id is :' + emailToUserId(req.body.email) + '\nbody password is : ' + req.body.password + '\n---\n');
+  // res.cookie("user_id", emailToUserId(req.body.email));
+  req.session.user_id = emailToUserId(req.body.email);
+
+  console.log("FROM APP.POST LOGIN : emailToUserId(req.body.email) = ", emailToUserId(req.body.email));
+  console.log("FROM APP.POST LOGIN : req.session.user_id = ", req.session.user_id)
+  res.redirect("/urls");
+  }
+});
+
+// -- LOG OUT ROUTE --
+app.post("/logout", (req, res) => {
+  //delete the cookie (_)
+  // res.clearCookie('username');
+  req.session.user_id = null;
+  // res.clearCookie('user_id');
+  res.redirect("/urls");
+});
+
+app.get("/register", (req,res) => {
+  let templateVars = {
+    user : users[req.cookies["user_id"]]
+  };
+  res.render("users_register", templateVars);
+});
+
+// USER REGISTRATION //  QUESTION : status 
+app.post("/register", (req,res) => {
+  if ( !req.body.email ) {
+    res.statusCode = 400;
+    console.log(`statusCode : ${res.statusCode} Bad request : Empty email`);
+    res.end("400 Bad request: Empty email");
+  } else if(userEmailDuplicateChecker(req.body.email) === true) {
+    res.statusCode = 400;
+    console.log(`statusCode : ${res.statusCode} Bad request : email already exists`);
+    res.end("400 Bad request : email already exists");
+  } else {
+      // console.log(req.body)
+    user_ID = generateRandomString(8);
+      // console.log("all good : random id gen");
+    users[user_ID] = {};
+      // console.log("all good : users")
+    users[user_ID].id = user_ID;
+      // console.log("all good : user ID")
+    users[user_ID].email = req.body.email;
+    // PASSWORD HASHING : 
+    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+    console.log('hashed password from registration = ', hashedPassword)
+    users[user_ID].password = hashedPassword;
+    // users[user_ID].password = req.body.password;
+      // email = req.body.email
+      // password = req.body.password
+      // console.log(users);
+    // res.cookie("user_id", user_ID);
+    req.session.user_id = user_ID;
+      // console.log("Cookie set!")
+    res.redirect("/urls");
+      // console.log("redirected? ")
+  }
+});
+// req.session.user_id
 
 app.get("/urls", (req, res) => {
   // if (!req.cookies["user_id"]) {
+  console.log('FROM app.get /urls .. req.session.user_id = ',req.session.user_id)
   if (!req.session.user_id) {
     // res.redirect("/login");
     // setTimeout(res.redirect("/login"), 1000);
@@ -272,6 +367,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post("/urls/:shortURL/edit", (req, res) => {
   // let userURLsObj = urlsForUser(req.cookies["user_id"]);
   let userURLsObj = urlsForUser(req.session.user_id);
+  console.log(userURLsObj);
   // if (!req.cookies["user_id"]) {
   if (!req.session.user_id) {
     // res.redirect("/login");
@@ -281,97 +377,11 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   //   res.end("Sorry! You do not have the proper clearance to view this  URL");
   } else {
   // res.send("hey! I'm on a dummy Edit page!")
-  const shortURL = req.params.shortURL
-  urlDatabase[shortURL] = req.body.longURL; // the line forgot : the actual line that updates this Short URL . (you dummy) 
+  // 2020-02-23 : BUG DISCOEVERED : urlDatabase wasn't updated with correct input format : FIXED.
+  const shortURL = req.params.shortURL;
+  const longURL = req.body.longURL;
+  urlDatabase[shortURL] = {longURL: longURL, userID: req.session.user_id}; // the line forgot : the actual line that updates this Short URL . (you dummy) 
   // urlDatabase[shortURL] = req.body.longURL;
   res.redirect("/urls/"+shortURL);
 }
 });
-// LOGIN / GET :
-app.get("/login", (req, res) =>{
-  let templateVars = {
-    // user : users[req.cookies["user_id"]]
-    user : users[req.session.user_id]
-  };
-  res.render("users_login", templateVars);
-} );
-
-// LOGIN / POST :  Takes username from form input., Now email instead.
-app.post("/login", (req, res) => {
-  // users[emailToUserId(req.body.email)]; // this was a bug. kept for reference.
-
-  // the following if-statement checks if email or password fields are empty. idea stolen from /register.
-  // console.log("---USER LOGIN DETAILS ---");
-  // console.log('EMAIL: ', req.body.email);
-  // console.log('PASSWORD: ',req.body.password);
-
-    // Checks if the login fields are empty
-    if ( !(req.body.email && req.body.password) ) {
-    res.statusCode = 400;
-    console.log(`statusCode : ${res.statusCode} Bad request : Empty email or password`);
-    res.end("400 Bad request: Empty email or password");
-  } 
-  // the following part checks both email and password at the same time 2-in-1. why? security! (ok ok and less work)
-  else if(userEmailDuplicateChecker(req.body.email) !== true && userPasswordchecker(req.body.email, req.body.password) !== true)  {
-    res.statusCode = 403;
-    console.log(`statusCode : ${res.statusCode} Bad request : email does not exist`);
-    res.end("403 forbidden or invalid request : email does not exist or wrong password");
-  } else {
-  console.log('---\nFROM INSIDE POST LOGIN : \nuser id is :' + emailToUserId(req.body.email) + '\nbody password is : ' + req.body.password + '\n---\n');
-  // res.cookie("user_id", emailToUserId(req.body.email));
-  req.session.user_id =  emailToUserId(req.body.email);
-  res.redirect("/urls");
-  }
-});
-
-// -- LOG OUT ROUTE --
-app.post("/logout", (req, res) => {
-  //delete the cookie (_)
-  // res.clearCookie('username');
-  req.session.user_id = null;
-  // res.clearCookie('user_id');
-  res.redirect("/urls");
-});
-
-app.get("/register", (req,res) => {
-  let templateVars = {
-    user : users[req.cookies["user_id"]]
-  };
-  res.render("users_register", templateVars);
-});
-
-// USER REGISTRATION //  QUESTION : status 
-app.post("/register", (req,res) => {
-  if ( !req.body.email ) {
-    res.statusCode = 400;
-    console.log(`statusCode : ${res.statusCode} Bad request : Empty email`);
-    res.end("400 Bad request: Empty email");
-  } else if(userEmailDuplicateChecker(req.body.email) === true) {
-    res.statusCode = 400;
-    console.log(`statusCode : ${res.statusCode} Bad request : email already exists`);
-    res.end("400 Bad request : email already exists");
-  } else {
-      // console.log(req.body)
-    user_ID = generateRandomString(8);
-      // console.log("all good : random id gen");
-    users[user_ID] = {};
-      // console.log("all good : users")
-    users[user_ID].id = user_ID;
-      // console.log("all good : user ID")
-    users[user_ID].email = req.body.email;
-    // PASSWORD HASHING : 
-    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-    console.log('hashed password from registration = ', hashedPassword)
-    users[user_ID].password = hashedPassword;
-    // users[user_ID].password = req.body.password;
-      // email = req.body.email
-      // password = req.body.password
-      // console.log(users);
-    // res.cookie("user_id", user_ID);
-    req.session.user_id = user_ID;
-      // console.log("Cookie set!")
-    res.redirect("/urls");
-      // console.log("redirected? ")
-  }
-});
-// req.session.user_id
