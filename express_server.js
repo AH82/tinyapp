@@ -87,11 +87,12 @@ const userEmailDuplicateChecker = function(email) {
 };
 
 // HELPER FUNCTION : takes user email and returns his ID
-const emailToUserId = function(email) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      console.log(' *** emailToUserId *** \n    ', users[user].id);
-      return users[user].id;
+const getUserByEmail = function(email, userDatabseObj) {
+  for (let user in userDatabseObj) {
+    if (userDatabseObj[user].email === email) {
+      console.log('HELPER FUNCTION getUserByEmail 1: Return is user = ', userDatabseObj[user].id);
+      console.log('HELPER FUNCTION getUserByEmail 2: Return is user = ', user);
+      return userDatabseObj[user].id;
     }
   }
 };
@@ -99,14 +100,14 @@ const emailToUserId = function(email) {
 // HELPER FUNCTION : returns true if password corresponding to an email is found.
 const userPasswordchecker = function(email, password) {
   
-  if (users[emailToUserId(email)]) {
-    const hashedPassword = users[emailToUserId(email)].password;
+  if (users[getUserByEmail(email, users)]) {
+    const hashedPassword = users[getUserByEmail(email, users)].password;
     console.log('hashed password from  function userPasswordchecker = ', hashedPassword)
     if (bcrypt.compareSync(password, hashedPassword)) {
       return true;
     }
 /*  // old code when the password was text. passwords now are bcrypted   
-    if (users[emailToUserId(email)].password === password) {
+    if (users[getUserByEmail(email)].password === password) {
         return true;
     } */
   } else return false;
@@ -163,7 +164,7 @@ app.get("/login", (req, res) => {
 
 // LOGIN / POST :  Takes username from form input., Now email instead.
 app.post("/login", (req, res) => {
-  // users[emailToUserId(req.body.email)]; // this was a bug. kept for reference.y
+  // users[getUserByEmail(req.body.email)]; // this was a bug. kept for reference.y
   
   // Checks if the login fields are empty
   if ( !(req.body.email && req.body.password) ) {
@@ -180,11 +181,11 @@ app.post("/login", (req, res) => {
   } 
   
   else {
-  console.log('---\nFROM INSIDE POST LOGIN : \nuser id is :' + emailToUserId(req.body.email) + '\nbody password is : ' + req.body.password + '\n---\n');
-  // res.cookie("user_id", emailToUserId(req.body.email));
-  req.session.user_id = emailToUserId(req.body.email);
+  console.log('---\nFROM INSIDE POST LOGIN : \nuser id is :' + getUserByEmail(req.body.email, users) + '\nbody password is : ' + req.body.password + '\n---\n');
+  // res.cookie("user_id", getUserByEmail(req.body.email));
+  req.session.user_id = getUserByEmail(req.body.email, users);
 
-  console.log("FROM APP.POST LOGIN : emailToUserId(req.body.email) = ", emailToUserId(req.body.email));
+  console.log("FROM APP.POST LOGIN : getUserByEmail(req.body.email, users) = ", getUserByEmail(req.body.email, users));
   console.log("FROM APP.POST LOGIN : req.session.user_id = ", req.session.user_id)
   res.redirect("/urls");
   }
@@ -275,7 +276,7 @@ app.get("/urls/new", (req, res) => {
     res.redirect("/login");
   } else {
     let templateVars = {
-      // user : users[emailToUserId(req.body.email)],
+      // user : users[getUserByEmail(req.body.email)],
       // user : users[req.cookies["user_id"]]//,
       user : users[req.session.user_id]//,
      // username: req.cookies["user_id"]
