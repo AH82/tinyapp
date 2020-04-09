@@ -157,14 +157,24 @@ app.get("/register", (req,res) => {
 // ROUTE : REGISTER : POST
 // USER REGISTRATION //  QUESTION : status
 app.post("/register", (req,res) => {
+
+  // -- Validations -- 
   if (!req.body.email) {
     res.statusCode = 400;
     console.log(`statusCode : ${res.statusCode} Bad request : Empty email`);
     res.end("400 Bad request: Empty email");
+
+  } else if (!req.body.password) {
+    res.statusCode = 400;
+    console.log(`statusCode : ${res.statusCode} Bad request : Empty password`);
+    res.end("400 Bad request: Empty password");
+
   } else if (findEmail(req.body.email, users) === true) {
     res.statusCode = 400;
     console.log(`statusCode : ${res.statusCode} Bad request : email already exists`);
     res.end("400 Bad request : email already exists");
+
+    // -- Logic -- 
   } else {
     // console.log(req.body)
     const user_ID = generateRandomString(8);
