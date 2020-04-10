@@ -13,14 +13,14 @@ const { urlDatabase, users } = require("./helpers_databases");
 
 // REQUIRE : MIDDLEWARE
 const express = require("express");
-let cookieParser = require('cookie-parser'); // replaced by cookie-session
+// const cookieParser = require('cookie-parser'); // replaced by cookie-session
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const bodyParser = require("body-parser");
 
 // APPS , APP USEs & PORT
 const app = express();
-app.use(cookieParser());
+// app.use(cookieParser());
 app.use(cookieSession({
   name: 'session',
   keys: ["theKey"/* secret keys */],
@@ -65,7 +65,7 @@ app.get("/hello", (req, res) => {
 app.get("/login", (req, res) => {
 
   console.log("[Get][/login] : req.session = ", req.session);
-  let templateVars = {
+  const templateVars = {
     user : users[req.session.user_id]
   };
   console.log("[Get][/login] templateVars =", templateVars)
@@ -76,6 +76,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login", (req, res) => {
   
+  /* -- Validations --  */
   if (!(req.body.email && req.body.password)) {
     res.statusCode = 400;
     console.log(`statusCode : ${res.statusCode} Bad request : Empty email or password`);
@@ -107,8 +108,8 @@ app.post("/logout", (req, res) => {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 app.get("/register", (req,res) => {
-  let templateVars = {
-    user : users[req.cookies["user_id"]]
+  const templateVars = {
+    user : users[req.session.user_id]
   };
   res.render("users_register", templateVars);
 });
@@ -117,7 +118,7 @@ app.get("/register", (req,res) => {
 
 app.post("/register", (req,res) => {
 
-  // -- Validations -- 
+  /* -- Validations --  */
   if (!req.body.email) {
     res.statusCode = 400;
     console.log(`statusCode : ${res.statusCode} Bad request : Empty email`);
@@ -133,7 +134,7 @@ app.post("/register", (req,res) => {
     console.log(`statusCode : ${res.statusCode} Bad request : email already exists`);
     res.end("400 Bad request : email already exists");
 
-    // -- Logic -- 
+    /* -- Function's Logic --  */
   } else {
     const user_ID = generateRandomString(8);
     users[user_ID] = {};
@@ -155,11 +156,13 @@ app.post("/register", (req,res) => {
 app.get("/urls", (req, res) => {
 
   console.log('[get][/urls] : req.session =', req.session);
-
+  /* -- Validations --  */
   if (!req.session.user_id) {
-    res.end("Please Login to view your URLs or register to create some new ones - from just URLs");
+    res.end("Please Login to view your URLs or register to create some new ones.");
+
+  /* -- Function's Logic --  */
   } else {
-    let templateVars = {
+    const templateVars = {
       user : users[req.session.user_id],
       urls: urlsOfUser(req.session.user_id)
     };
@@ -169,16 +172,23 @@ app.get("/urls", (req, res) => {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/* code to be inserted before the /:id (a.k.a. :shortURL) // order matters!
-reason: if placed after, Express will think /new is an :id ,
-but if this one has precedence (placed before), Express will know to treat it regularely (not ID).
+/* IMPORTANT NOTE : ORDER MATTERS :
+    Routes with variables (e.g. "./:shortURL" aka "/:id") to be placed after static routes : 
+    - if "/new" is placed after "/:id", Express.JS will think is an "/:id" ,
+    but as long as "/new" is placed first, it will have precedence, hence not treated as "/:id"
  */
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 app.get("/urls/new", (req, res) => {
+
+  /* -- Validations --  */
   if (!req.session.user_id) {
     res.redirect("/login");
+
+  /* -- Function's Logic --  */
   } else {
-    let templateVars = {
+    const templateVars = {
       user : users[req.session.user_id]
     };
     res.render("urls_new", templateVars);
@@ -186,21 +196,27 @@ app.get("/urls/new", (req, res) => {
 });
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-// this following function is mentioned in the learning modules as :id instead of :shortURL -- I think.
-// AKA: /urls/:id
+
+/*  NOTE: 
+      the following function is mentioned in the learning modules ("Compass") 
+      as "/:id" instead of "/:shortURL". The latter was used.
+*/
 
 app.get("/urls/:shortURL", (req, res) => {
 
   console.log("[get][/urls/:shortURL] : req.session = ", req.session);
 
-    if (!req.session.user_id) {
-      res.end("Please Login to view your URLs or register to create some new ones (from URLsShort");
-    } 
-    let userURLsObj = urlsOfUser(req.session.user_id);
-    if (!userURLsObj[req.params.shortURL]) {
-      res.end("Sorry! You do not have the proper clearance to view this  URL");
+  /* -- Validations --  */
+  if (!req.session.user_id) {
+    res.end("Please Login to view your URLs or register to create some new ones (from URLsShort");
+  } 
+  const userURLsObj = urlsOfUser(req.session.user_id);
+  if (!userURLsObj[req.params.shortURL]) {
+    res.end("Sorry! You do not have the proper clearance to view this  URL");
+
+  /* -- Function's Logic --  */
   } else {
-    let templateVars = {
+    const templateVars = {
       shortURL: req.params.shortURL,
       longURL:  userURLsObj[req.params.shortURL] ,
       user : users[req.session.user_id]
@@ -213,15 +229,15 @@ app.get("/urls/:shortURL", (req, res) => {
 
 app.post("/urls", (req, res) => {
   console.log('[post][/urls] : req.body = ', req.body);
-  let randomString = generateRandomString(6);
+  const randomString = generateRandomString(6);
 
   // commit the changes in the urlDatabase object.
-  console.log('[post][/urls] : randomString := ', randomString);       // TEST
-  console.log('[post][/urls] : urlDatabase BEFORE :', urlDatabase);   // TEST
+  console.log('[post][/urls] : randomString := ', randomString);
+  console.log('[post][/urls] : urlDatabase BEFORE :', urlDatabase);
   urlDatabase[randomString] = {};
   urlDatabase[randomString]["longURL"] = req.body.longURL;
   urlDatabase[randomString]["userID"] = req.session.user_id;
-  console.log('[post][/urls] : urlDatabase AFTER', urlDatabase);      // TEST
+  console.log('[post][/urls] : urlDatabase AFTER', urlDatabase);
 
 
   res.redirect("/urls/" + randomString);
@@ -237,9 +253,13 @@ app.get("/u/:shortURL", (req, res) => {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+
+  /* -- Validations --  */
   if (!req.session.user_id) {
-    res.end("Either you do not have the proper clearance to edit or Delete or you are not Logged in.\nPlease Login to view, edit or delete your URLs or register to create some new ones :)\n");
+    res.end("Not logged in, or no proper clearance to edit or Delete.\n");
     // res.redirect("/login");
+
+  /* -- Function's Logic --  */
   } else {
     console.log("[post][/urls/:shortURL/delete] : urlDatabase (Before deletion)", urlDatabase);
     delete urlDatabase[req.params.shortURL];
@@ -253,15 +273,19 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post("/urls/:shortURL/edit", (req, res) => {
 
   console.log("[post][/urls/:shortURL/edit] req.session = ", req.session)
-  let userURLsObj = urlsOfUser(req.session.user_id);
+  const userURLsObj = urlsOfUser(req.session.user_id);
   console.log(`
   Route: Edit : 
   req.session.user_id : ${req.session.user_id} 
   userURLsObj : ${userURLsObj}
   `);
+
+  /* -- Validations --  */
   if (!req.session.user_id) {
-    res.end("Either you do not have the proper clearance to edit or Delete or you are not Logged in.\nPlease Login to view, edit or delete your URLs or register to create some new ones :)\n");
+    res.end("Not logged in, or no proper clearance to edit or Delete.\n");
     // res.redirect("/login");
+
+  /* -- Function's Logic --  */
   } else {
     const shortURL = req.params.shortURL;
     const longURL = req.body.longURL;
@@ -269,3 +293,6 @@ app.post("/urls/:shortURL/edit", (req, res) => {
     res.redirect("/urls/" + shortURL);
   }
 });
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
