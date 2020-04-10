@@ -9,12 +9,11 @@ const bcrypt = require('bcrypt');
  * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
-// HELPER FUNCTION : generate [unique] random strings for IDs.
-// NOTE : the code has been looked over on the internet, the comments are mine (Hatem) though.
+// HELPER FUNCTION : generate [unique] random strings for user & url IDs
 const generateRandomString = function(length) {
-  // length: is how many characters
+  // length: How long is required randomString (number)
   let text = "";
-  let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"; //all possible/wanted letters to include
+  let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"; 
    
   for (let i = 0; i < length; i++)
     text += possible.charAt(Math.floor(Math.random() * possible.length)); // random # between 0-1, multiplied by the number of possible characters -> rounded then character at this position, then pushed into the string.
@@ -52,5 +51,17 @@ const verifyPasswordOfEmail = function(email, password) {
   } else return false;
 };
 
+// HELPER FUNCTION : returns the URLs where the userID is equal to the id of the currently logged in user.
+const urlsOfUser = function(id) {
+  //presumeably this will take it from the cookie
+  const userURLs = {};
+  for (let shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === id) {
+      userURLs[shortURL] = urlDatabase[shortURL].longURL;
+    }
+  }
+  return userURLs;
+};
 
-module.exports = {generateRandomString, findEmail, getUserByEmail, verifyPasswordOfEmail };
+
+module.exports = {generateRandomString, findEmail, getUserByEmail, verifyPasswordOfEmail, urlsOfUser };
