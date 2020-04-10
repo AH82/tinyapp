@@ -46,7 +46,6 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
-//
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
@@ -88,8 +87,6 @@ app.post("/login", (req, res) => {
   
   } else {
     req.session.user_id = getUserByEmail(req.body.email, users);
-    console.log('[post][/login] req.session = ', req.session);
-    console.log("...redirecting to [/urls]\n")
     res.redirect("/urls");
   }
 
@@ -139,7 +136,6 @@ app.post("/register", (req,res) => {
     users[user_ID].id = user_ID;
     users[user_ID].email = req.body.email;
     const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-    console.log('hashed password from registration = ', hashedPassword);
     users[user_ID].password = hashedPassword;
     req.session.user_id = user_ID;
     res.redirect("/urls");
@@ -150,10 +146,8 @@ app.post("/register", (req,res) => {
  *                       ROUTES FOR URLS                           *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// ROUTE : URLS : GET : List of URLs per user.
 app.get("/urls", (req, res) => {
 
-  console.log('[get][/urls] : req.session =', req.session);
   /* -- Validations --  */
   if (!req.session.user_id) {
     res.end("Please Login to view your URLs or register to create some new ones.");
@@ -200,25 +194,28 @@ app.get("/urls/new", (req, res) => {
       as "/:id" instead of "/:shortURL". The latter was used.
 */
 
-app.get("/urls/:shortURL", (req, res) => {
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-  console.log("[get][/urls/:shortURL] : req.session = ", req.session);
+app.get("/urls/:shortURL", (req, res) => {
 
   /* -- Validations --  */
   if (!req.session.user_id) {
     res.end("Please Login to view your URLs or register to create some new ones (from URLsShort");
   } 
+  
   const userURLsObj = urlsOfUser(req.session.user_id);
+  
   if (!userURLsObj[req.params.shortURL]) {
     res.end("Sorry! You do not have the proper clearance to view this  URL");
-
-  /* -- Function's Logic --  */
+    
+    /* -- Function's Logic --  */
   } else {
     const templateVars = {
       shortURL: req.params.shortURL,
       longURL:  userURLsObj[req.params.shortURL] ,
       user : users[req.session.user_id]
     };
+    
     res.render("urls_show", templateVars);
   }
 });
@@ -226,17 +223,13 @@ app.get("/urls/:shortURL", (req, res) => {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 app.post("/urls", (req, res) => {
-  console.log('[post][/urls] : req.body = ', req.body);
+
   const randomString = generateRandomString(6);
 
   // commit the changes in the urlDatabase object.
-  console.log('[post][/urls] : randomString := ', randomString);
-  console.log('[post][/urls] : urlDatabase BEFORE :', urlDatabase);
   urlDatabase[randomString] = {};
   urlDatabase[randomString]["longURL"] = req.body.longURL;
   urlDatabase[randomString]["userID"] = req.session.user_id;
-  console.log('[post][/urls] : urlDatabase AFTER', urlDatabase);
-
 
   res.redirect("/urls/" + randomString);
 });
@@ -244,10 +237,11 @@ app.post("/urls", (req, res) => {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 app.get("/u/:shortURL", (req, res) => {
-  console.log("[get][/u/:shortURL] : req.params = ", req.params)
+
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
   res.redirect(longURL);
+
 });
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -269,21 +263,17 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 app.post("/urls/:shortURL", (req, res) => {
 
-  // console.log("[post][/urls/:shortURL] req.session = ", req.session)
-  // const userURLsObj = urlsOfUser(req.session.user_id);
-  // console.log("[post][/urls/:shortURL] (Edit) : userURLsObj : ", userURLsObj);
-  
   /* -- Validations --  */
   if (!req.session.user_id) {
     res.end("Not logged in, or no proper clearance to edit or Delete.\n");
     
     /* -- Function's Logic --  */
   } else {
-    console.log("[post][/urls/:shortURL] req.params = ", req.params)
-    console.log("[post][/urls/:shortURL] req.body = ", req.body)
+    
     const shortURL = req.params.shortURL;
     const longURL = req.body.longURL;
     urlDatabase[shortURL] = {longURL: longURL, userID: req.session.user_id}; 
+    
     res.redirect("/urls/" + shortURL);
   }
 });
