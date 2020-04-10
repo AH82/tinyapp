@@ -9,7 +9,7 @@ const bcrypt = require('bcrypt');
  * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
-// HELPER FUNCTION : generate [unique] random strings for user & url IDs
+// generates [unique] random strings for user & url IDs
 const generateRandomString = function(length) {
   // length: How long is required randomString (number)
   let text = "";
@@ -21,7 +21,6 @@ const generateRandomString = function(length) {
   return text;
 };
 
-// HELPER FUNCTION : returns true if user email exists.
 const findEmail = function(email, userDatabseObj) {
   for (let user in userDatabseObj) {
     if (userDatabseObj[user].email === email) {
@@ -30,7 +29,6 @@ const findEmail = function(email, userDatabseObj) {
   }
 };
 
-// HELPER FUNCTION : takes user email and returns his ID
 const getUserByEmail = function(email, userDatabseObj) {
   for (let user in userDatabseObj) {
     if (userDatabseObj[user].email === email) {
@@ -39,11 +37,8 @@ const getUserByEmail = function(email, userDatabseObj) {
   }
 };
 
-// HELPER FUNCTION : returns true if password corresponding to an email is found.
 const verifyPasswordOfEmail = function(email, password) {
-  
-  if (users[getUserByEmail(email, users)]) {
-
+    if (users[getUserByEmail(email, users)]) {
     const hashedPassword = users[getUserByEmail(email, users)].password;
     if (bcrypt.compareSync(password, hashedPassword)) {
       return true;
@@ -51,7 +46,7 @@ const verifyPasswordOfEmail = function(email, password) {
   } else return false;
 };
 
-// HELPER FUNCTION : gets user's URLs
+// gets user's URLs
 const urlsOfUser = function(id) {
   const userURLs = {};
   for (let shortURL in urlDatabase) {
