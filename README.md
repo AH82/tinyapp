@@ -30,7 +30,9 @@ TinyApp is a full stack web application built with Node and Express that allows 
   - To Login : 
   http://localhost:8080/login
   -  for a list of user URLs
-  http://localhost:8080/urls (buggy if not logged in)
+  http://localhost:8080/urls (you must be logged in)
 
 - Follow your instinct!
 
+## Notes & Tips : 
+- when you enter a new URL or edit one, the domain address must start with "http://". (i.e "http://www.example.ca" , not just "www.example.ca".)

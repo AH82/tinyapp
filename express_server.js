@@ -58,14 +58,13 @@ app.get("/hello", (req, res) => {
  *                 ROUTES FOR REGISTRATION & LOGIN                 *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// ROUTE : LOGIN : GET
 app.get("/login", (req, res) => {
 
   console.log("[Get][/login] : req.session = ", req.session);
   const templateVars = {
     user : users[req.session.user_id]
   };
-  console.log("[Get][/login] templateVars =", templateVars)
+  console.log("[Get][/login] templateVars =", templateVars);
   res.render("users_login", templateVars);
 });
 
@@ -79,7 +78,7 @@ app.post("/login", (req, res) => {
     console.log(`statusCode : ${res.statusCode} Bad request : Empty email or password`);
     res.end("400 Bad request: Empty email or password");
   
-  } else if (!(findEmail(req.body.email, users) 
+  } else if (!(findEmail(req.body.email, users)
   || verifyPasswordOfEmail(req.body.email, req.body.password)))  {
     res.statusCode = 403;
     console.log(`statusCode : ${res.statusCode} Bad request : email does not exist`);
@@ -131,13 +130,13 @@ app.post("/register", (req,res) => {
 
     /* -- Function's Logic --  */
   } else {
-    const user_ID = generateRandomString(8);
-    users[user_ID] = {};
-    users[user_ID].id = user_ID;
-    users[user_ID].email = req.body.email;
+    const newUserId = generateRandomString(8);
+    users[newUserId] = {};
+    users[newUserId].id = newUserId;
+    users[newUserId].email = req.body.email;
     const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-    users[user_ID].password = hashedPassword;
-    req.session.user_id = user_ID;
+    users[newUserId].password = hashedPassword;
+    req.session.user_id = newUserId;
     res.redirect("/urls");
   }
 });
@@ -165,7 +164,7 @@ app.get("/urls", (req, res) => {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /* IMPORTANT NOTE : ORDER MATTERS :
-    Routes with variables (e.g. "./:shortURL" aka "/:id") to be placed after static routes : 
+    Routes with variables (e.g. "./:shortURL" aka "/:id") to be placed after static routes :
     - if "/new" is placed after "/:id", Express.JS will think is an "/:id" ,
     but as long as "/new" is placed first, it will have precedence, hence not treated as "/:id"
  */
@@ -189,8 +188,8 @@ app.get("/urls/new", (req, res) => {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/*  NOTE: 
-      the following function is mentioned in the learning modules ("Compass") 
+/*  NOTE:
+      the following function is mentioned in the learning modules ("Compass")
       as "/:id" instead of "/:shortURL". The latter was used.
 */
 
@@ -201,7 +200,7 @@ app.get("/urls/:shortURL", (req, res) => {
   /* -- Validations --  */
   if (!req.session.user_id) {
     res.end("Please Login to view your URLs or register to create some new ones (from URLsShort");
-  } 
+  }
   
   const userURLsObj = urlsOfUser(req.session.user_id);
   
@@ -272,11 +271,10 @@ app.post("/urls/:shortURL", (req, res) => {
     
     const shortURL = req.params.shortURL;
     const longURL = req.body.longURL;
-    urlDatabase[shortURL] = {longURL: longURL, userID: req.session.user_id}; 
+    urlDatabase[shortURL] = {longURL: longURL, userID: req.session.user_id};
     
     res.redirect("/urls/" + shortURL);
   }
 });
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
