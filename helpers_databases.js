@@ -32,7 +32,8 @@ const users = {
   }
 };
 
-/* // This is the old Database before bcrypt
+// old Database before bcrypt : kept for reference.
+/* 
 const users = {
   "userRandomID": {
     id: "userRandomID",
