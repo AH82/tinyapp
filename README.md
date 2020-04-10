@@ -4,7 +4,7 @@ TinyApp is a full stack web application built with Node and Express that allows 
 
 ## Final Product
 
-!["screenshot for URL page "](https://github.com/AH82/tinyapp/blob/master/docs/tinyApp%20URLs%20screenshot%20.png?raw=true)
+!["screenshot for URL page "](https://github.com/AH82/tinyapp/blob/master/docs/tinyApp_urls_creenshot.png?raw=true)
 <!-- !["screenshot description"](#) -->
 
 ## Dependencies
@@ -34,6 +34,3 @@ TinyApp is a full stack web application built with Node and Express that allows 
 
 - Follow your instinct!
 
-## Known Issues
-- 2020-02-23 : a major bug is introduced when it comes to users tring to edit their links or create a new ones. Investigation and debugging is undergoing. 
-- 2020-02-23 : Logging out works but may be faulty (minor bug), it does not seem to delete the cookie. more investigation is undergoing.
