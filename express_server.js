@@ -8,7 +8,7 @@
 /* * * * * * * * * * * FILE REQUIREMENTS * * * * * * * * * * * * */
 
 // REQUIRE : Helper files
-const {generateRandomString, findEmail, getUserByEmail, verifyPasswordOfEmail } = require("./helpers.js");
+const {generateRandomString, findEmail, getUserByEmail, verifyPasswordOfEmail, urlsOfUser } = require("./helpers.js");
 const { urlDatabase, users } = require("./helpers_databases");
 
 // REQUIRE : MIDDLEWARE
@@ -16,6 +16,7 @@ const express = require("express");
 let cookieParser = require('cookie-parser'); // replaced by cookie-session
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
+const bodyParser = require("body-parser");
 
 // APPS , APP USEs & PORT
 const app = express();
@@ -23,45 +24,19 @@ app.use(cookieParser());
 app.use(cookieSession({
   name: 'session',
   keys: ["theKey"/* secret keys */],
-
-  // Cookie Options
-  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  maxAge: 24 * 60 * 60 * 1000 // = 24 hours // (Optional property)
 }));
 
 const PORT = 8080; // default port 8080
 
-/**
- * The body-parser library will convert the request body from a Buffer into string that we can read.
- * It will then add the data to the req(request) object under the key body.
- */
-const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
+app.set("view engine", "ejs"); // "view engine"s default is "jade"
 
-// setting "view engine" from Express's default "jade" , to "ejs" (Embedded JavaScript)
-app.set("view engine", "ejs");
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *                 HELPER FUNCTIONS (TO MOVE LATER)                *
- *                     (if & when time aloocated)                  *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// 2020-02-23 : This helper function wasn't moved in fear to relation to a bug
-
-// HELPER FUNCTION : returns the URLs where the userID is equal to the id of the currently logged in user.
-const urlsForUser = function(id) {
-  //presumeably this will take it from the cookie
-  const userURLs = {};
-  for (let shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
-      userURLs[shortURL] = urlDatabase[shortURL].longURL;
-    }
-  }
-  return userURLs;
-};
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                             ROUTES                              *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 
 // HOMEPAGE : says Hello - no links
 app.get("/", (req, res) => {
@@ -81,12 +56,6 @@ app.get("/urls.json", (req, res) => {
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
-/**
- * NOTE-TO-SELF :
- * "templeteVars" is in each scope, not seen by other "app.get()"s
- * Also, I can send any objects I desire , each object sent to path is treated per page
- * pay attention to the Path/route arg for app.get(arg, whatever)
- **/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                 ROUTES FOR REGISTRATION & LOGIN                 *
@@ -112,25 +81,27 @@ app.post("/login", (req, res) => {
     console.log(`statusCode : ${res.statusCode} Bad request : Empty email or password`);
     res.end("400 Bad request: Empty email or password");
   
-  } else if (findEmail(req.body.email, users) !== true && verifyPasswordOfEmail(req.body.email, req.body.password) !== true)  {
+  } else if (!(findEmail(req.body.email, users) 
+  || verifyPasswordOfEmail(req.body.email, req.body.password)))  {
     res.statusCode = 403;
     console.log(`statusCode : ${res.statusCode} Bad request : email does not exist`);
     res.end("403 forbidden or invalid request : email does not exist or wrong password");
   
   } else {
-
     req.session.user_id = getUserByEmail(req.body.email, users);
     console.log('[post][/login] req.session = ', req.session);
     console.log("...redirecting to [/urls]\n")
     res.redirect("/urls");
   }
+
+  
 });
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -157,7 +128,7 @@ app.post("/register", (req,res) => {
     console.log(`statusCode : ${res.statusCode} Bad request : Empty password`);
     res.end("400 Bad request: Empty password");
 
-  } else if (findEmail(req.body.email, users) === true) {
+  } else if (findEmail(req.body.email, users)) {
     res.statusCode = 400;
     console.log(`statusCode : ${res.statusCode} Bad request : email already exists`);
     res.end("400 Bad request : email already exists");
@@ -190,7 +161,7 @@ app.get("/urls", (req, res) => {
   } else {
     let templateVars = {
       user : users[req.session.user_id],
-      urls: urlsForUser(req.session.user_id)
+      urls: urlsOfUser(req.session.user_id)
     };
     res.render("urls_index", templateVars);
   }
@@ -225,7 +196,7 @@ app.get("/urls/:shortURL", (req, res) => {
     if (!req.session.user_id) {
       res.end("Please Login to view your URLs or register to create some new ones (from URLsShort");
     } 
-    let userURLsObj = urlsForUser(req.session.user_id);
+    let userURLsObj = urlsOfUser(req.session.user_id);
     if (!userURLsObj[req.params.shortURL]) {
       res.end("Sorry! You do not have the proper clearance to view this  URL");
   } else {
@@ -282,7 +253,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post("/urls/:shortURL/edit", (req, res) => {
 
   console.log("[post][/urls/:shortURL/edit] req.session = ", req.session)
-  let userURLsObj = urlsForUser(req.session.user_id);
+  let userURLsObj = urlsOfUser(req.session.user_id);
   console.log(`
   Route: Edit : 
   req.session.user_id : ${req.session.user_id} 
