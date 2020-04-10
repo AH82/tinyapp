@@ -13,17 +13,15 @@ const { urlDatabase, users } = require("./helpers_databases");
 
 // REQUIRE : MIDDLEWARE
 const express = require("express");
-// const cookieParser = require('cookie-parser'); // replaced by cookie-session
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const bodyParser = require("body-parser");
 
 // APPS , APP USEs & PORT
 const app = express();
-// app.use(cookieParser());
 app.use(cookieSession({
   name: 'session',
-  keys: ["theKey"/* secret keys */],
+  keys: ["theKey"], /* secret keys */
   maxAge: 24 * 60 * 60 * 1000 // = 24 hours // (Optional property)
 }));
 
