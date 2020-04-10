@@ -96,14 +96,17 @@ app.get("/hello", (req, res) => {
 // ROUTE : LOGIN : GET
 app.get("/login", (req, res) => {
 
+  console.log("[Get] \"/login\" : req.session = ",req.session);
   let templateVars = {
     // user : users[req.cookies["user_id"]]
     user : users[req.session.user_id]
   };
-  console.log("this is the app.get login : req.session.user_id = ",req.session.user_id);
-  console.log("this is the app.get login : users[req.session.user_id] = ",users[req.session.user_id]);
-  console.log("this is the app.get login : users = ",users);
+  // console.log("this is the app.get login : req.session.user_id = ",req.session.user_id);
+  // console.log("this is the app.get login : users[req.session.user_id] = ",users[req.session.user_id]);
+  // console.log("this is the app.get login : users = ", users);
+  console.log("[Get][/login] templateVars =", templateVars)
   res.render("users_login", templateVars);
+  // res.render("users_login");
 });
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -116,20 +119,24 @@ app.post("/login", (req, res) => {
     res.statusCode = 400;
     console.log(`statusCode : ${res.statusCode} Bad request : Empty email or password`);
     res.end("400 Bad request: Empty email or password");
+  
   } else if (findEmail(req.body.email, users) !== true && VerifyPasswordOfEmail(req.body.email, req.body.password) !== true)  {
     // check: email & its password exist & match.
     res.statusCode = 403;
     console.log(`statusCode : ${res.statusCode} Bad request : email does not exist`);
     res.end("403 forbidden or invalid request : email does not exist or wrong password");
+  
   } else {
-    // app.post /login : actual logic
-    console.log('---\nFROM INSIDE POST LOGIN : \nuser id is :' + getUserByEmail(req.body.email, users) + '\nbody password is : ' + req.body.password + '\n---\n');
-    // res.cookie("user_id", getUserByEmail(req.body.email));
+
+    console.log('[post][/login] req.session = ', req.session);
     req.session.user_id = getUserByEmail(req.body.email, users);
-
-    console.log("FROM APP.POST LOGIN : getUserByEmail(req.body.email, users) = ", getUserByEmail(req.body.email, users));
-    console.log("FROM APP.POST LOGIN : req.session.user_id = ", req.session.user_id);
-
+    console.log('[post][/login] req.session = ', req.session);
+    console.log(`
+    [Post] "/login" :
+    getUserByEmail(req.body.email, users) = ${getUserByEmail(req.body.email, users)}
+    req.body.password = ${req.body.password}
+    `);
+    console.log("...redirecting to [/urls]\n")
     res.redirect("/urls");
   }
 });
@@ -139,7 +146,7 @@ app.post("/login", (req, res) => {
 app.post("/logout", (req, res) => {
   //delete the cookie (_)
   // res.clearCookie('username');
-  req.session.user_id = null; // BUG?
+  req.session = null; // BUG?
   // res.clearCookie('user_id');
   res.redirect("/urls");
 });
@@ -208,11 +215,12 @@ app.post("/register", (req,res) => {
 // ROUTE : URLS : GET : List of URLs per user.
 app.get("/urls", (req, res) => {
   // if (!req.cookies["user_id"]) {
-  console.log('FROM app.get /urls .. req.session.user_id = ',req.session.user_id);
+  console.log('[get][/urls] : req.session =', req.session);
+
   if (!req.session.user_id) {
     // res.redirect("/login");
     // setTimeout(res.redirect("/login"), 1000);
-    res.end("Please Login to view your URLs or register to create some new ones");
+    res.end("Please Login to view your URLs or register to create some new ones - from just URLs");
   } else {
     let templateVars = {
       // user : users[req.cookies["user_id"]],
@@ -259,14 +267,18 @@ app.get("/urls/new", (req, res) => {
 // ROUTE : URL <URL ID> : GET
 app.get("/urls/:shortURL", (req, res) => {
   // let userURLsObj = urlsForUser(req.cookies["user_id"]);
-  let userURLsObj = urlsForUser(req.session.user_id);
+  console.log("[get][/urls/:shortURL] : req.session = ", req.session)
   // if (!req.cookies["user_id"]) {
-  if (!req.session.user_id) {
-    // setTimeout(res.redirect("/login"), 3000);
-    res.end("Please Login to view your URLs or register to create some new ones");
-  } else if (!userURLsObj[req.params.shortURL]) {
-    // if the the URL with the matching :id does not belong to them.
-    res.end("Sorry! You do not have the proper clearance to view this  URL");
+    if (!req.session.user_id) {
+      // setTimeout(res.redirect("/login"), 3000);
+      res.end("Please Login to view your URLs or register to create some new ones (from URLsShort");
+      
+    } 
+    let userURLsObj = urlsForUser(req.session.user_id);
+    if (!userURLsObj[req.params.shortURL]) {
+
+      // if the the URL with the matching :id does not belong to them.
+      res.end("Sorry! You do not have the proper clearance to view this  URL");
   } else {
     let templateVars = {
       shortURL: req.params.shortURL,
@@ -279,18 +291,22 @@ app.get("/urls/:shortURL", (req, res) => {
     res.render("urls_show", templateVars);
   }
 });
+/* app.get("/urls/:shortURL", (req, res) => {
+  let templateVars = { shortURL: req.params.shortURL, longURL:  urlDatabase[req.params.shortURL]  };
+  res.render("urls_show", templateVars);
+});  */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 // ROUTE : URLS (LIST) : POST
 // POSTs the form (in urls_new) to /URLs
 app.post("/urls", (req, res) => {
-  console.log('Console is now in app.post("/urls".. :\n',req.body);  // Log the POST request body to the console
+  console.log('[post][/urls] : req.body = ', req.body);
   //call string random generation function for shortURL.
   let randomString = generateRandomString(6);
 
   // commit the changes in the urlDatabase object.
-  console.log('randomString := ', randomString);       // TEST
-  console.log('urlDatabase BEFORE :', urlDatabase);   // TEST
+  console.log('[post][/urls] : randomString := ', randomString);       // TEST
+  console.log('[post][/urls] : urlDatabase BEFORE :', urlDatabase);   // TEST
   // 2020-02-23 : POTENTIAL BUG DISCOVERED : urlDatabase was not updated here / Bug is here indeed
   // urlDatabase[randomString] = req.body.longURL; // old code
   urlDatabase[randomString] = {};
@@ -298,7 +314,7 @@ app.post("/urls", (req, res) => {
   // urlDatabase[randomString]["userID"] = req.cookies["user_id"];
   urlDatabase[randomString]["userID"] = req.session.user_id;
   // 2020-02-23 : POTENTIAL BUG DISCOVERED ^ : END OF FIX
-  console.log('urlDatabase AFTER', urlDatabase);      // TEST
+  console.log('[post][/urls] : urlDatabase AFTER', urlDatabase);      // TEST
   // NOTE ^^^ : object key added apparently without quotes, so be careful if this is needed later for JSON files.
 
 
@@ -308,10 +324,6 @@ app.post("/urls", (req, res) => {
   res.redirect("/urls/" + randomString);
   // res.location();
 });
-/* app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL:  urlDatabase[req.params.shortURL]  };
-  res.render("urls_show", templateVars);
-});  */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 // ROUTE : SHORT URL LINK & REDIRECT : GET
@@ -334,9 +346,9 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   //   // if the the URL with the matching :id does not belong to them.
   //   res.end("Sorry! You do not have the proper clearance to view this  URL");
   } else {
-    console.log(urlDatabase);
+    console.log("[post][/urls/:shortURL/delete] : urlDatabase (Before deletion)", urlDatabase);
     delete urlDatabase[req.params.shortURL];
-    console.log(urlDatabase);
+    console.log("[post][/urls/:shortURL/delete] : urlDatabase (After deletion)", urlDatabase);
     res.redirect("/urls");
   }
 });
@@ -344,9 +356,15 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 // ROUTE : EDIT URL <URL ID> : POST (per user)
 app.post("/urls/:shortURL/edit", (req, res) => {
+
   // let userURLsObj = urlsForUser(req.cookies["user_id"]);
+  console.log("[post][/urls/:shortURL/edit] req.session = ", req.session)
   let userURLsObj = urlsForUser(req.session.user_id);
-  console.log(userURLsObj);
+  console.log(`
+  Route: Edit : 
+  req.session.user_id : ${req.session.user_id} 
+  userURLsObj : ${userURLsObj}
+  `);
   // if (!req.cookies["user_id"]) {
   if (!req.session.user_id) {
     // res.redirect("/login");
@@ -359,7 +377,8 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   // 2020-02-23 : BUG DISCOEVERED : urlDatabase wasn't updated with correct input format : FIXED.
     const shortURL = req.params.shortURL;
     const longURL = req.body.longURL;
-    urlDatabase[shortURL] = {longURL: longURL, userID: req.session.user_id}; // the line forgot : the actual line that updates this Short URL . (you dummy)
+    urlDatabase[shortURL] = {longURL: longURL, userID: req.session.user_id}; 
+    // the line forgot : the actual line that updates this Short URL . (you dummy)
     // urlDatabase[shortURL] = req.body.longURL;
     res.redirect("/urls/" + shortURL);
   }
