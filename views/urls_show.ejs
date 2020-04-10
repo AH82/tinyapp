@@ -20,7 +20,7 @@
         <!-- applying the URL Edit -->
         <p class="card-text">
           <!-- at my bug, i forgot to add /edit to the action= URL. which caused no route. -->
-          <form class="form-inline" action="/urls/<%= shortURL %>/edit" method="POST">
+          <form class="form-inline" action="/urls/<%= shortURL %>" method="POST">
             <input class="form-control" type="text" name="longURL" placeholder="http://" style="width: 300px; margin: 1em">
             <button type="submit" class="btn btn-primary">Submit</button>
           </form>

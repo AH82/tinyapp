@@ -244,7 +244,9 @@ app.post("/urls", (req, res) => {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL].longURL;
+  console.log("[get][/u/:shortURL] : req.params = ", req.params)
+  const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[shortURL].longURL;
   res.redirect(longURL);
 });
 
@@ -255,36 +257,30 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   /* -- Validations --  */
   if (!req.session.user_id) {
     res.end("Not logged in, or no proper clearance to edit or Delete.\n");
-    // res.redirect("/login");
 
   /* -- Function's Logic --  */
   } else {
-    console.log("[post][/urls/:shortURL/delete] : urlDatabase (Before deletion)", urlDatabase);
     delete urlDatabase[req.params.shortURL];
-    console.log("[post][/urls/:shortURL/delete] : urlDatabase (After deletion)", urlDatabase);
     res.redirect("/urls");
   }
 });
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-app.post("/urls/:shortURL/edit", (req, res) => {
+app.post("/urls/:shortURL", (req, res) => {
 
-  console.log("[post][/urls/:shortURL/edit] req.session = ", req.session)
-  const userURLsObj = urlsOfUser(req.session.user_id);
-  console.log(`
-  Route: Edit : 
-  req.session.user_id : ${req.session.user_id} 
-  userURLsObj : ${userURLsObj}
-  `);
-
+  // console.log("[post][/urls/:shortURL] req.session = ", req.session)
+  // const userURLsObj = urlsOfUser(req.session.user_id);
+  // console.log("[post][/urls/:shortURL] (Edit) : userURLsObj : ", userURLsObj);
+  
   /* -- Validations --  */
   if (!req.session.user_id) {
     res.end("Not logged in, or no proper clearance to edit or Delete.\n");
-    // res.redirect("/login");
-
-  /* -- Function's Logic --  */
+    
+    /* -- Function's Logic --  */
   } else {
+    console.log("[post][/urls/:shortURL] req.params = ", req.params)
+    console.log("[post][/urls/:shortURL] req.body = ", req.body)
     const shortURL = req.params.shortURL;
     const longURL = req.body.longURL;
     urlDatabase[shortURL] = {longURL: longURL, userID: req.session.user_id}; 
