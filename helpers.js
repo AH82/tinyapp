@@ -51,9 +51,8 @@ const verifyPasswordOfEmail = function(email, password) {
   } else return false;
 };
 
-// HELPER FUNCTION : returns the URLs where the userID is equal to the id of the currently logged in user.
+// HELPER FUNCTION : gets user's URLs
 const urlsOfUser = function(id) {
-  //presumeably this will take it from the cookie
   const userURLs = {};
   for (let shortURL in urlDatabase) {
     if (urlDatabase[shortURL].userID === id) {
